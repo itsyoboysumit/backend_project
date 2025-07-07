@@ -1,6 +1,7 @@
 import express from 'express';
-import {registerUser} from '../controllers/user.controllers.js';
-import {upload} from '../middlewares/upload.js'; // to upload files using middleware
+import {registerUser, loginUser, logoutUser} from '../controllers/user.controllers.js';
+import {upload} from '../middleware/multer.middleware.js'; // to upload files using middleware
+import {verifyJWT} from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 router.route('/register').post(
@@ -8,6 +9,10 @@ router.route('/register').post(
         {name: 'avatar', maxCount: 1}, // single file upload for avatar
         {name: 'coverImage', maxCount: 1} // single file upload for cover image
     ]),
-    registerUser);
+    registerUser
+);
+
+router.route("/login").post(loginUser)
+router.route("/logout").post(verifyJWT, logoutUser)
 
 export {router as userRouter};
