@@ -6,6 +6,7 @@ import { ApiResponse } from "../utils/ApiResponse.js"; // utility to send API re
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 
+//GENERATE TOKENS 
 const generateAccessAndRefreshToken = async (userId) => {
   try {
     const user = await User.findById(userId);
@@ -177,5 +178,8 @@ const logoutUser = asyncHandler(async(req, res)=>{
     .clearCookie("refreshToken", options)
     .json(new ApiResponse(200, {}, "User logged Out"))
 })
+
+// REFRESH TOKEN
+
 
 export { registerUser, loginUser, logoutUser};
