@@ -12,9 +12,8 @@ import { ApiResponse } from "../utils/ApiResponse.js";
         }
 
         const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET)
-        console.log("deocded",decodedToken)
         const user = await User.findById(decodedToken?._id).select("-password -refreshToken")
-        console.log(user);
+        
         if(!user){
             throw new ApiError("Invalid Access Token", 401)
         }
