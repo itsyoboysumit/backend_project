@@ -11,7 +11,7 @@ import {
     getUserChannelProfile, 
     getWatchHistory, 
     updateAccountDetails
-} from '../controllers/user.controllers.js';
+} from '../controllers/user.controller.js';
 import {upload} from '../middleware/multer.middleware.js'; // to upload files using middleware
 import {verifyJWT} from '../middleware/auth.middleware.js';
 
@@ -35,4 +35,4 @@ router.route("/c/:username").get(verifyJWT, getUserChannelProfile)
 router.route("/history").get(verifyJWT, getWatchHistory)
 
 
-export {router as userRouter};
+export default router
