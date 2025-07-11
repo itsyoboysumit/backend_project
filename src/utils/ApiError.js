@@ -5,6 +5,10 @@ class ApiError extends Error {
         error = [], 
         stack = ""
     ){
+        // Auto-fix: if message and statusCode are swapped
+        if (typeof message === 'number' && typeof statusCode === 'string') {
+            [message, statusCode] = [statusCode, message];
+        }
         super(message);
         this.statusCode = statusCode || 500;
         this.error = error;

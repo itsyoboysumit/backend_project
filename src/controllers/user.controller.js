@@ -18,6 +18,7 @@ const generateAccessAndRefreshToken = async (userId) => {
     user.refreshToken = refreshToken;
     await user.save({ validateBeforeSave: false });
 
+
     return { accessToken, refreshToken };
   } catch (error) {
     throw new ApiError(
@@ -205,19 +206,19 @@ const refreshAccessToken = asyncHandler(async (req, res)=>{
 
     const options={
       httpOnly:true,
-      secure:true
+      secure:true,
+      sameSite: "None"
     }
-
-    const {accessToken, newRefreshToken} = await generateAccessAndRefreshToken(user._id)
-
+    const {accessToken, refreshToken} = await generateAccessAndRefreshToken(user._id)
+    
     return res
     .status(200)
     .cookie('accessToken', accessToken, options)
-    .cookie("refreshToken", newRefreshToken , options)
+    .cookie("refreshToken", refreshToken , options)
     .json(
       new ApiResponse(
         200,
-        {accessToken, refreshToken: newRefreshToken},
+        {accessToken, refreshToken: refreshToken},
         "Access token refrehsed"
       )
     )
