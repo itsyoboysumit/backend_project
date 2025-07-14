@@ -44,7 +44,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
   //get user details from frontend
   const { fullName, username, email, password } = req.body;
-  console.log("email:", email);
+  
 
   // validation stage
   if (
@@ -128,7 +128,7 @@ const loginUser = asyncHandler(async (req, res) =>{
         throw new ApiError("User does not exist", 404)
     }
     
-    const isPasswordValid = await user.isPasswordValid
+    const isPasswordValid = await user.isPasswordValid(password)
     if(!isPasswordValid){
         throw new ApiError("Invalid user credentials",401)
     }

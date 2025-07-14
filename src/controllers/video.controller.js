@@ -5,6 +5,9 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/AsyncHandler.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import {Like} from "../models/like.model.js";
+import {Subscription} from "../models/subscription.model.js";
+
 import fs from "fs/promises"; 
 
 // GET ALL VIDEOS WITH FILTERS AND PAGINATION
@@ -45,7 +48,8 @@ const getAllVideos = asyncHandler(async (req, res) => {
                 views: 1,
                 isPublished: 1,
                 createdAt: 1,
-                owner: "$ownerDetails.username"
+                owner: "$ownerDetails.username",
+                ownerAvatar: "$ownerDetails.avatar"
             }
         },
         { $sort: sortStage }
@@ -98,19 +102,43 @@ const publishAVideo = asyncHandler(async (req, res) => {
 
 // GET VIDEO BY ID
 const getVideoById = asyncHandler(async (req, res) => {
-    const { videoId } = req.params;
+  const { videoId } = req.params;
 
-    if (!isValidObjectId(videoId)) {
-        throw new ApiError(400, "Invalid video ID");
-    }
+  if (!isValidObjectId(videoId)) {
+    throw new ApiError(400, "Invalid video ID");
+  }
 
-    const video = await Video.findById(videoId).populate("owner", "username fullName avatar");
+  const video = await Video.findById(videoId).populate("owner", "username fullName avatar");
 
-    if (!video) {
-        throw new ApiError(404, "Video not found");
-    }
+  if (!video) {
+    throw new ApiError(404, "Video not found");
+  }
 
-    return res.status(200).json(new ApiResponse(200, video, "Video fetched successfully"));
+  // Step 1: Initialize flags
+  let isLiked = false;
+  let isSubscribed = false;
+
+  // Step 2: If user is logged in, check like/subscription status
+  if (req.user?._id) {
+    const [likeExists, subscriptionExists] = await Promise.all([
+      Like.exists({ video: videoId, likedBy: req.user._id }),
+      Subscription.exists({ channel: video.owner._id, subscriber: req.user._id }),
+    ]);
+
+    isLiked = !!likeExists;
+    isSubscribed = !!subscriptionExists;
+  }
+
+  // Step 3: Attach custom fields to response
+  const videoData = {
+    ...video.toObject(),
+    isLiked,
+    isSubscribed,
+  };
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, videoData, "Video fetched successfully"));
 });
 
 // UPDATE VIDEO
