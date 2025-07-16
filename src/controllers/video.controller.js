@@ -114,32 +114,32 @@ const getVideoById = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Video not found");
   }
 
-  // Step 1: Initialize flags
   let isLiked = false;
   let isSubscribed = false;
 
-  // Step 2: If user is logged in, check like/subscription status
-  if (req.user?._id) {
-    const [likeExists, subscriptionExists] = await Promise.all([
-      Like.exists({ video: videoId, likedBy: req.user._id }),
-      Subscription.exists({ channel: video.owner._id, subscriber: req.user._id }),
-    ]);
-
-    isLiked = !!likeExists;
-    isSubscribed = !!subscriptionExists;
+  try {
+    if (req.user?._id) {
+      const [likeExists, subscriptionExists] = await Promise.all([
+        Like.exists({ video: videoId, likedBy: req.user._id }),
+        Subscription.exists({ channel: video.owner?._id, subscriber: req.user._id }),
+      ]);
+      isLiked = !!likeExists;
+      isSubscribed = !!subscriptionExists;
+    }
+  } catch (error) {
+    console.error("Error checking isLiked/isSubscribed:", error.message);
   }
 
-  // Step 3: Attach custom fields to response
-  const videoData = {
-    ...video.toObject(),
-    isLiked,
-    isSubscribed,
-  };
+  const videoData = video.toObject(); 
+
+  videoData.isLiked = isLiked;
+  videoData.isSubscribed = isSubscribed;
 
   return res
     .status(200)
     .json(new ApiResponse(200, videoData, "Video fetched successfully"));
 });
+
 
 // UPDATE VIDEO
 const updateVideo = asyncHandler(async (req, res) => {
