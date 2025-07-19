@@ -226,6 +226,7 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
 // INCRESE VIDEO VIEWS
 const increaseVideoViews = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
+    console.log("video id:",videoId)
 
     if (!isValidObjectId(videoId)) {
         throw new ApiError("Invalid video ID",400);
