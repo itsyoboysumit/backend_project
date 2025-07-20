@@ -223,11 +223,42 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, video, `Video ${video.isPublished ? "published" : "unpublished"} successfully`));
 });
 
+// INCRESE VIDEO VIEWS
+const increaseVideoViews = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+
+    if (!isValidObjectId(videoId)) {
+        throw new ApiError("Invalid video ID",400);
+    }
+    try {
+        const updated = await Video.findByIdAndUpdate(
+            videoId,
+            { $inc: { views: 1 } },
+            { new: false } 
+        );
+
+        if (!updated) {
+            return res
+                .status(404)
+                .json(new ApiResponse(404, null, "Video not found"));
+        }
+
+        return res
+            .status(200)
+            .json(new ApiResponse(200, null, "View count incremented"));
+    } catch (err) {
+        return res
+            .status(500)
+            .json(new ApiResponse(500, null, "Internal server error"));
+    }
+});
+
 export {
     getAllVideos,
     publishAVideo,
     getVideoById,
     updateVideo,
     deleteVideo,
-    togglePublishStatus
+    togglePublishStatus,
+    increaseVideoViews
 };
