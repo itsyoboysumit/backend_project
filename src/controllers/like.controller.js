@@ -97,12 +97,35 @@ const getLikedVideos = asyncHandler(async (req, res) => {
     const likedVideos = await Like.find({
         likedBy: userId,
         video: { $ne: null }
-    }).populate("video");
+    })
+    .populate({
+        path: "video",
+        populate: {
+            path: "owner",
+            select: "username avatar",
+        },
+    });
+
+    // Transform the response to flatten owner info into video object
+    const transformed = likedVideos.map(like => {
+        const video = like.video;
+        const ownerData = video?.owner;
+
+        return {
+            ...like.toObject(),
+            video: {
+                ...video.toObject(),
+                owner: ownerData?.username || null,
+                ownerAvatar: ownerData?.avatar || null,
+            },
+        };
+    });
 
     res.status(200).json(
-        new ApiResponse(200, likedVideos, "Liked videos fetched successfully")
+        new ApiResponse(200, transformed, "Liked videos fetched successfully")
     );
 });
+
 
 export {
     toggleCommentLike,
