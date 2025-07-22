@@ -444,64 +444,83 @@ const getUserChannelProfile = asyncHandler(async(req, res) => {
 })
 
 // GET WATCH HISTORY
-const getWatchHistory = asyncHandler(async(req, res) => {
-    const user = await User.aggregate([
-        {
-            $match: {
-                _id: new mongoose.Types.ObjectId(req.user._id)
-            }
-        },
-        {
+const getWatchHistory = asyncHandler(async (req, res) => {
+  const user = await User.aggregate([
+    {
+      $match: {
+        _id: new mongoose.Types.ObjectId(req.user._id)
+      }
+    },
+    {
+      $lookup: {
+        from: "videos",
+        localField: "watchHistory",
+        foreignField: "_id",
+        as: "watchHistory",
+        pipeline: [
+          {
             $lookup: {
-                from: "videos",
-                localField: "watchHistory",
-                foreignField: "_id",
-                as: "watchHistory",
-                pipeline: [
-                    {
-                        $lookup: {
-                            from: "users",
-                            localField: "owner",
-                            foreignField: "_id",
-                            as: "owner",
-                            pipeline: [
-                                {
-                                    $project: {
-                                        fullName: 1,
-                                        username: 1,
-                                        avatar: 1
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    {
-                        $addFields:{
-                            owner:{
-                                $first: "$owner"
-                            }
-                        }
-                    }
-                ]
+              from: "users",
+              localField: "owner",
+              foreignField: "_id",
+              as: "owner",
+              pipeline: [
+                {
+                  $project: {
+                    username: 1,
+                    avatar: 1
+                  }
+                }
+              ]
             }
-        }
-    ])
+          },
+          {
+            $addFields: {
+              owner: { $first: "$owner.username" },
+              ownerAvatar: { $first: "$owner.avatar" }
+            }
+          },
+          {
+            $project: {
+              _id: 1,
+              videoFile: 1,
+              thumbnail: 1,
+              title: 1,
+              description: 1,
+              duration: 1,
+              views: 1,
+              isPublished: 1,
+              createdAt: 1,
+              owner: 1,
+              ownerAvatar: 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      $project: {
+        _id: 0,
+        watchHistory: 1
+      }
+    }
+  ]);
 
-    return res
-    .status(200)
-    .json(
-        new ApiResponse(
-            200,
-            user[0].watchHistory,
-            "Watch history fetched successfully"
-        )
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      user[0]?.watchHistory || [],
+      "Watch history fetched successfully"
     )
-})
+  );
+});
+
 
 // ADD TO WATCH HISTORY
 const addToWatchHistory = asyncHandler(async (req, res) => {
   const userId = req.user._id;
   const videoId = req.params.videoId;
+  console.log("Adding video to watch history:", videoId, userId);
 
   await User.findByIdAndUpdate(userId, {
     $addToSet: { watchHistory: videoId } // prevents duplicates
