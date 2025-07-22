@@ -32,14 +32,33 @@ const getChannelStats = asyncHandler(async (req, res) => {
 })
 
 const getChannelVideos = asyncHandler(async (req, res) => {
-    const userId = req.user._id
+  const userId = req.user._id;
 
-    const videos = await Video.find({ owner: userId }).sort({ createdAt: -1 })
+  const rawVideos = await Video.find({ owner: userId })
+    .populate("owner", "username avatar")
+    .sort({ createdAt: -1 });
 
-    return res.status(200).json(
-        new ApiResponse(200, videos, "Channel videos fetched successfully")
-    )
-})
+  const videos = rawVideos.map(video => ({
+    _id: video._id,
+    videoFile: video.videoFile,
+    thumbnail: video.thumbnail,
+    title: video.title,
+    description: video.description,
+    duration: video.duration,
+    views: video.views,
+    isPublished: video.isPublished,
+    createdAt: video.createdAt,
+    updatedAt: video.updatedAt,
+    owner: video.owner?.username || null,
+    ownerAvatar: video.owner?.avatar || null,
+  }));
+
+  return res.status(200).json(
+    new ApiResponse(200, videos, "Channel videos fetched successfully")
+  );
+});
+
+
 
 export {
     getChannelStats,
