@@ -498,6 +498,21 @@ const getWatchHistory = asyncHandler(async(req, res) => {
     )
 })
 
+// ADD TO WATCH HISTORY
+const addToWatchHistory = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const videoId = req.params.videoId;
+
+  await User.findByIdAndUpdate(userId, {
+    $addToSet: { watchHistory: videoId } // prevents duplicates
+  });
+
+  return res.status(200).json(
+    new ApiResponse(200, null, "Video added to watch history")
+  );
+});
+
+
 
 export {
     registerUser,
@@ -510,5 +525,6 @@ export {
     updateUserAvatar,
     updateUserCoverImage,
     getUserChannelProfile,
-    getWatchHistory
+    getWatchHistory,
+    addToWatchHistory
 }

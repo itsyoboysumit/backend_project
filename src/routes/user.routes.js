@@ -10,7 +10,8 @@ import {
     updateUserCoverImage, 
     getUserChannelProfile, 
     getWatchHistory, 
-    updateAccountDetails
+    updateAccountDetails,
+    addToWatchHistory
 } from '../controllers/user.controller.js';
 import {upload} from '../middleware/multer.middleware.js'; // to upload files using middleware
 import {verifyJWT} from '../middleware/auth.middleware.js';
@@ -33,6 +34,7 @@ router.route("/avatar").patch(verifyJWT, upload.single("avatar"), updateUserAvat
 router.route("/cover-image").patch(verifyJWT, upload.single("coverImage"), updateUserCoverImage)
 router.route("/c/:username").get(verifyJWT, getUserChannelProfile)
 router.route("/history").get(verifyJWT, getWatchHistory)
+router.route("/history").post(verifyJWT, addToWatchHistory)
 
 
 export default router
