@@ -47,16 +47,45 @@ const getPlaylistById = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid playlist ID");
     }
 
-    const playlist = await Playlist.findById(playlistId).populate("videos");
+    const playlist = await Playlist.findById(playlistId)
+        .populate({
+            path: "videos",
+            populate: {
+                path: "owner",
+                select: "username avatar", // only bring these two fields
+            },
+        });
 
     if (!playlist) {
         throw new ApiError(404, "Playlist not found");
     }
 
+    // Transform videos to flatten owner.username → owner, and owner.avatar → ownerAvatar
+    const transformedPlaylist = {
+        ...playlist.toObject(),
+        videos: playlist.videos.map((video) => {
+            const videoObj = video.toObject();
+
+            const username = videoObj.owner?.username || null;
+            const avatar = videoObj.owner?.avatar || null;
+
+            // Remove original owner object and inject flat fields
+            delete videoObj.owner;
+
+            return {
+                ...videoObj,
+                owner: username,
+                ownerAvatar: avatar,
+            };
+        }),
+    };
+
     return res.status(200).json(
-        new ApiResponse(200, playlist, "Playlist fetched successfully")
+        new ApiResponse(200, transformedPlaylist, "Playlist fetched successfully")
     );
 });
+
+
 
 // Add video to playlist
 const addVideoToPlaylist = asyncHandler(async (req, res) => {
