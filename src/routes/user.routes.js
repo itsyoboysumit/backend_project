@@ -11,16 +11,18 @@ import {
     getUserChannelProfile, 
     getWatchHistory, 
     updateAccountDetails,
-    addToWatchHistory
+    addToWatchHistory,
+    forgotPassword,
+    resetPassword
 } from '../controllers/user.controller.js';
-import {upload} from '../middleware/multer.middleware.js'; // to upload files using middleware
+import {upload} from '../middleware/multer.middleware.js'; 
 import {verifyJWT} from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 router.route('/register').post(
     upload.fields([
-        {name: 'avatar', maxCount: 1}, // single file upload for avatar
-        {name: 'coverImage', maxCount: 1} // single file upload for cover image
+        {name: 'avatar', maxCount: 1}, 
+        {name: 'coverImage', maxCount: 1}
     ]),
     registerUser
 );
@@ -35,4 +37,6 @@ router.route("/cover-image").patch(verifyJWT, upload.single("coverImage"), updat
 router.route("/c/:username").get(verifyJWT, getUserChannelProfile)
 router.route("/history").get(verifyJWT, getWatchHistory)
 router.route("/history/:videoId").post(verifyJWT, addToWatchHistory);
+router.route("/forgot-password").post(forgotPassword);
+router.route("/reset-password").post(resetPassword);
 export default router

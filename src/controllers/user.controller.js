@@ -1,11 +1,12 @@
 import { asyncHandler } from "../utils/AsyncHandler.js";
-import { ApiError } from "../utils/ApiError.js"; // used to throw errors in asyncHandler
-import { uploadOnCloudinary } from "../utils/cloudinary.js"; // utility to upload files on cloudinary
-import { User } from "../models/user.model.js"; // user model to interact with user collection in DB
-import { ApiResponse } from "../utils/ApiResponse.js"; // utility to send API responses
+import { ApiError } from "../utils/ApiError.js"; 
+import { uploadOnCloudinary } from "../utils/cloudinary.js"; 
+import { User } from "../models/user.model.js"; 
+import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
-import {v2 as cloudinary} from 'cloudinary';   
+import {v2 as cloudinary} from 'cloudinary';  
+import { sendEmail } from "../utils/SendEmail.js"
 
 //GENERATE TOKENS 
 const generateAccessAndRefreshToken = async (userId) => {
@@ -31,17 +32,7 @@ const generateAccessAndRefreshToken = async (userId) => {
 
 // REGISTER
 const registerUser = asyncHandler(async (req, res) => {
-  // Logic for registering a user
-  // get user detail fron frontend
-  // validation - not empty
-  // check if user already exists ( using mail and username)
-  // check files ( avatar and cover image)
-  // upload them on cloudinary ( avatar )
-  // create user object - careate entry on DB
-  // remove password and refresh token from response
-  // check for user creation
-  // return rsponse
-
+ 
   //get user details from frontend
   const { fullName, username, email, password } = req.body;
   
@@ -534,6 +525,75 @@ const addToWatchHistory = asyncHandler(async (req, res) => {
   );
 });
 
+// FORGOT PASSWORD 
+
+const forgotPassword = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    throw new ApiError("Email is required", 400);
+  }
+
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new ApiError("User not found with this email", 404);
+  }
+
+  const resetToken = user.generatePasswordResetToken();
+  await user.save({ validateBeforeSave: false });
+
+  const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+
+  const message = `
+    <h1>Password Reset Request</h1>
+    <p>Click the link below to reset your password:</p>
+    <a href="${resetUrl}" target="_blank">${resetUrl}</a>
+    <p>This link will expire in 10 minutes.</p>
+  `;
+
+  try {
+    await sendEmail(user.email, "Password Reset", message);
+    return res.status(200).json(
+      new ApiResponse(200, {}, "Password reset link sent to email")
+    );
+  } catch (err) {
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save({ validateBeforeSave: false });
+    throw new ApiError("Error sending email. Please try again later.", 500);
+  }
+});
+
+// RESET PASSWORD 
+const resetPassword = asyncHandler(async (req, res) => {
+  const { token } = req.query;
+  const { password } = req.body;
+
+  if (!token || !password) {
+    throw new ApiError("Token and new password are required", 400);
+  }
+
+  const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+  const user = await User.findOne({
+    passwordResetToken: hashedToken,
+    passwordResetExpires: { $gt: new Date() },
+  });
+
+  if (!user) {
+    throw new ApiError("Invalid or expired token", 400);
+  }
+
+  user.password = password;
+  user.passwordResetToken = undefined;
+  user.passwordResetExpires = undefined;
+  await user.save();
+
+  return res.status(200).json(
+    new ApiResponse(200, {}, "Password has been reset successfully")
+  );
+});
+
 
 
 export {
@@ -548,5 +608,7 @@ export {
     updateUserCoverImage,
     getUserChannelProfile,
     getWatchHistory,
-    addToWatchHistory
+    addToWatchHistory,
+    forgotPassword,
+    resetPassword
 }

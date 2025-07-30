@@ -4,8 +4,8 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-  "start": "node src/index.js"
-},
+    "start": "node src/index.js"
+  },
   "keywords": [
     "backend",
     "node",
@@ -28,6 +28,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.16.1",
     "mongoose-aggregate-paginate-v2": "^1.1.4",
-    "multer": "^2.0.1"
+    "multer": "^2.0.1",
+    "nodemailer": "^7.0.5"
   }
 }
