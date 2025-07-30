@@ -11,10 +11,12 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
+  const isImage =
+    ['thumbnail', 'avatar', 'coverImage'].includes(file.fieldname) &&
+    file.mimetype.startsWith('image/');
   const isVideo = file.fieldname === 'videoFile' && file.mimetype.startsWith('video/');
-  const isImage = file.fieldname === 'thumbnail' && file.mimetype.startsWith('image/');
 
-  if (isVideo || isImage) {
+  if (isImage || isVideo) {
     cb(null, true);
   } else {
     cb(new ApiError("Invalid file type: only video and image files are allowed", 400), false);

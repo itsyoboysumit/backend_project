@@ -7,6 +7,7 @@ import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import {v2 as cloudinary} from 'cloudinary';  
 import { sendEmail } from "../utils/SendEmail.js"
+import crypto from "node:crypto"
 
 //GENERATE TOKENS 
 const generateAccessAndRefreshToken = async (userId) => {
@@ -566,7 +567,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
 
 // RESET PASSWORD 
 const resetPassword = asyncHandler(async (req, res) => {
-  const { token } = req.query;
+  const { token } = req.body;
   const { password } = req.body;
 
   if (!token || !password) {
