@@ -10,41 +10,59 @@ import {Subscription} from "../models/subscription.model.js";
 
 import fs from "fs/promises"; 
 
-// GET RANDOM VIDEOS
+// GET ALL VIDEOS WITH FILTERS AND PAGINATION
 const getAllVideos = asyncHandler(async (req, res) => {
-  const { limit = 50 } = req.query;
+    const { page = 1, limit = 200, query, sortBy = "createdAt", sortType = "desc", userId } = req.query;
 
-  const aggregate = Video.aggregate([
-    { $match: { isPublished: true } },
-    { $sample: { size: parseInt(limit) } },
-    {
-      $lookup: {
-        from: "users",
-        localField: "owner",
-        foreignField: "_id",
-        as: "ownerDetails",
-      },
-    },
-    { $unwind: "$ownerDetails" },
-    {
-      $project: {
-        videoFile: 1,
-        thumbnail: 1,
-        title: 1,
-        description: 1,
-        duration: 1,
-        views: 1,
-        isPublished: 1,
-        createdAt: 1,
-        owner: "$ownerDetails.username",
-        ownerAvatar: "$ownerDetails.avatar",
-      },
-    },
-  ]);
+    const matchStage = { isPublished: true };
 
-  const videos = await aggregate;
+    if (query) {
+        matchStage.title = { $regex: query, $options: "i" };
+    }
 
-  return res.status(200).json(new ApiResponse(200, videos, "Random videos fetched"));
+    if (userId && isValidObjectId(userId)) {
+        matchStage.owner = new mongoose.Types.ObjectId(userId);
+    }
+
+    const sortStage = {};
+    sortStage[sortBy] = sortType === "asc" ? 1 : -1;
+
+    const aggregate = Video.aggregate([
+        { $match: matchStage },
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "ownerDetails"
+            }
+        },
+        { $unwind: "$ownerDetails" },
+        {
+            $project: {
+                videoFile: 1,
+                thumbnail: 1,
+                title: 1,
+                description: 1,
+                duration: 1,
+                views: 1,
+                isPublished: 1,
+                createdAt: 1,
+                owner: "$ownerDetails.username",
+                ownerAvatar: "$ownerDetails.avatar"
+            }
+        },
+        { $sort: sortStage }
+    ]);
+
+    const options = {
+        page: parseInt(page),
+        limit: parseInt(limit)
+    };
+
+    const videos = await Video.aggregatePaginate(aggregate, options);
+
+    return res.status(200).json(new ApiResponse(200, videos, "Videos fetched successfully"));
 });
 
 // PUBLISH A VIDEO
