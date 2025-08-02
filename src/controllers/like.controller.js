@@ -107,25 +107,26 @@ const getLikedVideos = asyncHandler(async (req, res) => {
     });
 
     // Transform the response to flatten owner info into video object
-    const transformed = likedVideos.map(like => {
-        const video = like.video;
-        const ownerData = video?.owner;
+    const transformed = likedVideos
+        .filter(like => like.video)
+        .map(like => {
+            const video = like.video;
+            const ownerData = video?.owner;
 
-        return {
-            ...like.toObject(),
-            video: {
-                ...video.toObject(),
-                owner: ownerData?.username || null,
-                ownerAvatar: ownerData?.avatar || null,
-            },
-        };
-    });
+            return {
+                ...like.toObject(),
+                video: {
+                    ...video.toObject(),
+                    owner: ownerData?.username || null,
+                    ownerAvatar: ownerData?.avatar || null,
+                },
+            };
+        });
 
     res.status(200).json(
         new ApiResponse(200, transformed, "Liked videos fetched successfully")
     );
 });
-
 
 export {
     toggleCommentLike,
