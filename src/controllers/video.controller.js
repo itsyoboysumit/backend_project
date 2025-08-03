@@ -12,13 +12,16 @@ import fs from "fs/promises";
 
 // GET ALL VIDEOS WITH FILTERS AND PAGINATION
 const getAllVideos = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 200, query, sortBy = "createdAt", sortType = "desc", userId } = req.query;
+    const {
+        page = 1,
+        limit = 200,
+        query,
+        sortBy = "createdAt",
+        sortType = "desc",
+        userId
+    } = req.query;
 
     const matchStage = { isPublished: true };
-
-    if (query) {
-        matchStage.title = { $regex: query, $options: "i" };
-    }
 
     if (userId && isValidObjectId(userId)) {
         matchStage.owner = new mongoose.Types.ObjectId(userId);
@@ -27,7 +30,9 @@ const getAllVideos = asyncHandler(async (req, res) => {
     const sortStage = {};
     sortStage[sortBy] = sortType === "asc" ? 1 : -1;
 
-    const aggregate = Video.aggregate([
+    const searchRegex = query ? new RegExp(query, "i") : null;
+
+    const aggregatePipeline = [
         { $match: matchStage },
         {
             $lookup: {
@@ -38,6 +43,24 @@ const getAllVideos = asyncHandler(async (req, res) => {
             }
         },
         { $unwind: "$ownerDetails" },
+
+        // ✅ Full-text search across title, description, owner's username and fullName
+        ...(searchRegex
+            ? [{
+                $match: {
+                    $or: [
+                        { title: { $regex: searchRegex } },
+                        { description: { $regex: searchRegex } },
+                        { "ownerDetails.username": { $regex: searchRegex } },
+                        { "ownerDetails.fullName": { $regex: searchRegex } }
+                    ]
+                }
+            }]
+            : []
+        ),
+
+        { $sort: sortStage },
+
         {
             $project: {
                 videoFile: 1,
@@ -51,16 +74,15 @@ const getAllVideos = asyncHandler(async (req, res) => {
                 owner: "$ownerDetails.username",
                 ownerAvatar: "$ownerDetails.avatar"
             }
-        },
-        { $sort: sortStage }
-    ]);
+        }
+    ];
 
     const options = {
         page: parseInt(page),
         limit: parseInt(limit)
     };
 
-    const videos = await Video.aggregatePaginate(aggregate, options);
+    const videos = await Video.aggregatePaginate(Video.aggregate(aggregatePipeline), options);
 
     return res.status(200).json(new ApiResponse(200, videos, "Videos fetched successfully"));
 });
