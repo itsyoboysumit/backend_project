@@ -166,36 +166,41 @@ const getVideoById = asyncHandler(async (req, res) => {
 // UPDATE VIDEO
 const updateVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
-    const { title, description } = req.body;
 
     if (!isValidObjectId(videoId)) {
-        throw new ApiError("Invalid video ID",400);
+        throw new ApiError("Invalid video ID", 400);
     }
 
     const video = await Video.findById(videoId);
 
     if (!video) {
-        throw new ApiError("Video not found",404);
+        throw new ApiError("Video not found", 404);
     }
 
     if (video.owner.toString() !== req.user._id.toString()) {
-        throw new ApiError("You can only update your own videos",403);
+        throw new ApiError("You can only update your own videos", 403);
     }
 
-    if (title) video.title = title;
-    if (description) video.description = description;
+    let thumbnailUpdated = false;
 
     const thumbnailPath = req.files?.thumbnail?.[0]?.path;
     if (thumbnailPath) {
         const thumbnailUpload = await uploadOnCloudinary(thumbnailPath);
-        if (thumbnailUpload) {
+        if (thumbnailUpload && thumbnailUpload !== video.thumbnail) {
             video.thumbnail = thumbnailUpload;
+            thumbnailUpdated = true;
         }
+    }
+
+    if (!thumbnailUpdated) {
+        throw new ApiError("Thumbnail not updated", 400);
     }
 
     await video.save();
 
-    return res.status(200).json(new ApiResponse(200, video, "Video updated successfully"));
+    return res
+        .status(200)
+        .json(new ApiResponse(200, video, "Thumbnail updated successfully"));
 });
 
 // DELETE VIDEO

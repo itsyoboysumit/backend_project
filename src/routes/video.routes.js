@@ -35,7 +35,15 @@ router.route("/").post(
 router
     .route("/:videoId")
     .delete(deleteVideo)
-    .patch(upload.single("thumbnail"), updateVideo);
+    .patch(
+    upload.fields([
+      {
+        name: "thumbnail",
+        maxCount: 1,
+      },
+    ]),
+    updateVideo
+);
 
 router.route("/toggle/publish/:videoId").patch(togglePublishStatus);
 
